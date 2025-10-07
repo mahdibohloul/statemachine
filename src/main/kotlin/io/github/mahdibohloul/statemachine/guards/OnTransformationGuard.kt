@@ -53,6 +53,7 @@ interface OnTransformationGuard<TContainer : TransformationContainer<*>> {
    * @return The specific error code string representing guard validation failure.
    */
   fun getValidationFailureErrorCodeString(): ErrorCodeString = StateMachineErrorCodeString.GuardValidationFailed
+
   /**
    * Retrieves the cause of the validation failure, if available.
    *
