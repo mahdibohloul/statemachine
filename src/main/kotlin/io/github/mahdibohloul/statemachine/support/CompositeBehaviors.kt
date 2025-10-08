@@ -12,7 +12,7 @@ import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.switchIfEmpty
 import reactor.kotlin.core.publisher.toMono
 
-internal class CompositeBehaviors {
+class CompositeBehaviors {
   class CompositeOnTransformationAction<TContainer : TransformationContainer<*>>(
     private val actions: MutableList<OnTransformationAction<TContainer>>,
   ) : OnTransformationAction<TContainer> {

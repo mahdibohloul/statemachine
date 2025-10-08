@@ -15,7 +15,6 @@ import org.springframework.context.event.ContextRefreshedEvent
 import org.springframework.context.event.EventListener
 import org.springframework.core.OrderComparator
 import org.springframework.core.ResolvableType
-import org.springframework.stereotype.Component
 import kotlin.reflect.KClass
 
 /**
@@ -48,7 +47,6 @@ import kotlin.reflect.KClass
  * @see StateMachineState
  * @see TransformerIdentifier
  */
-@Component
 class StateMachineStateFactory(
   private val applicationContext: ApplicationContext,
 ) {

@@ -6,10 +6,8 @@ import io.github.mahdibohloul.statemachine.actions.OnTransformationAction
 import io.github.mahdibohloul.statemachine.support.CompositeBehaviors
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationContext
-import org.springframework.stereotype.Component
 import kotlin.reflect.KClass
 
-@Component
 class OnTransformationActionFactory(
   private val applicationContext: ApplicationContext,
 ) {

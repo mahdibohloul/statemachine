@@ -11,7 +11,7 @@ import io.github.mahdibohloul.statemachine.providers.TransformationResponseProvi
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
 
-internal class DefaultBehaviors {
+class DefaultBehaviors {
   class DefaultOnTransformationAction<TContainer : TransformationContainer<*>> : OnTransformationAction<TContainer> {
     override fun execute(container: TContainer): Mono<TContainer> = container.toMono()
   }
