@@ -4,7 +4,9 @@ import io.github.mahdibohloul.statemachine.TransformationContainer
 import io.github.mahdibohloul.statemachine.TransformationRequest
 import io.github.mahdibohloul.statemachine.actions.OnTransformationAction
 import io.github.mahdibohloul.statemachine.choices.OnTransformationChoice
+import io.github.mahdibohloul.statemachine.guards.GuardDecision
 import io.github.mahdibohloul.statemachine.guards.OnTransformationGuard
+import io.github.mahdibohloul.statemachine.guards.isDenied
 import io.github.mahdibohloul.statemachine.handlers.OnTransformationErrorHandler
 import io.github.mahdibohloul.statemachine.providers.TransformationContainerProvider
 import io.github.mahdibohloul.statemachine.providers.TransformationResponseProvider
@@ -47,8 +49,28 @@ class CompositeBehaviors {
   class CompositeOnTransformationGuard<TContainer : TransformationContainer<*>>(
     private val guards: MutableList<OnTransformationGuard<TContainer>>,
   ) : OnTransformationGuard<TContainer> {
+    @Deprecated(
+      "Legacy boolean-based guard execution method. Use executeDecision(container) instead.",
+      replaceWith = ReplaceWith(
+        "executeDecision(container: TContainer): Mono<GuardDecision>",
+        "io.github.mahdibohloul.statemachine.guards.GuardDecision",
+      ),
+      level = DeprecationLevel.WARNING,
+    )
     override fun execute(container: TContainer): Mono<Boolean> = guards.fold(true.toMono()) { acc, guard ->
       acc.filter { it }.flatMap { guard.execute(container) }.defaultIfEmpty(false)
+    }
+
+    override fun executeDecision(
+      container: TContainer,
+    ): Mono<GuardDecision> = guards.fold(Mono.just(GuardDecision.Allow)) { acc, guard ->
+      acc.flatMap { decision ->
+        if (decision.isDenied()) {
+          return@flatMap Mono.just(decision)
+        }
+
+        return@flatMap guard.executeDecision(container)
+      }
     }
 
     override fun validate(container: TContainer): Mono<Boolean> = guards.fold(true.toMono()) { acc, guard ->

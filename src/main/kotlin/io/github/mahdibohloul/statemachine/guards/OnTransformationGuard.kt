@@ -22,47 +22,101 @@ interface OnTransformationGuard<TContainer : TransformationContainer<*>> {
    * @param container The container representing the transformation context on which the guard logic will be executed.
    * @return A Mono that emits a Boolean indicating whether the guard condition was satisfied (true) or not (false).
    */
+  @Deprecated(
+    message = "Legacy boolean-based guard execution method. Use executeDecision(container) instead.",
+    level = DeprecationLevel.WARNING,
+    replaceWith = ReplaceWith(
+      "executeDecision(container: TContainer): Mono<GuardDecision>",
+      "io.github.mahdibohloul.statemachine.guards.GuardDecision",
+    ),
+  )
   fun execute(container: TContainer): Mono<Boolean>
+
+  /**
+   * Executes the guard and maps the result to a GuardDecision.
+   *
+   * This is the preferred, new-style API for guard implementations.
+   * The default implementation adapts legacy boolean-based guards by using
+   * [getValidationFailureErrorCodeString] and [getValidationFailureCause] to produce a [GuardDecision].
+   *
+   * New implementations should override this method directly instead of [execute].
+   *
+   * @param container The transformation container to be validated.
+   * @return A Mono emitting a GuardDecision based on the execution result.
+   */
+  fun executeDecision(container: TContainer): Mono<GuardDecision> = execute(container)
+    .map { allowed ->
+      if (allowed) {
+        GuardDecision.Allow
+      } else {
+        GuardDecision.Deny(
+          errorCode = getValidationFailureErrorCodeString(),
+          cause = getValidationFailureCause(),
+        )
+      }
+    }
 
   /**
    * Validates the given transformation container using a guard and emits the result.
    * If validation fails, an error is emitted encapsulating details about the failure.
    *
+   * This method is built on top of [executeDecision] and works seamlessly with both legacy boolean-based guards
+   * and new-style guards returning [GuardDecision].
+   *
    * @param container The transformation container to be validated.
    * @return A Mono emitting `true` if validation succeeds, otherwise emits an error.
    */
-  fun validate(container: TContainer): Mono<Boolean> = execute(container)
-    .handle { validationRes, sink: SynchronousSink<Boolean> ->
-      if (validationRes) {
-        return@handle sink.next(validationRes)
+  fun validate(container: TContainer): Mono<Boolean> = executeDecision(container)
+    .handle { decision, sink: SynchronousSink<Boolean> ->
+      when (decision) {
+        GuardDecision.Allow -> sink.next(true)
+        is GuardDecision.Deny -> sink.error(
+          StateMachineException.GuardValidationException(
+            guardName = this::class.getOriginalClass().simpleName.orEmpty(),
+            validationFailureErrorCodeString = decision.errorCode,
+            source = container.source,
+            target = container.target,
+            cause = decision.cause,
+          ),
+        )
       }
-      return@handle sink.error(
-        StateMachineException.GuardValidationException(
-          guardName = this::class.getOriginalClass().simpleName.orEmpty(),
-          validationFailureErrorCodeString = this.getValidationFailureErrorCodeString(),
-          source = container.source,
-          target = container.target,
-          cause = getValidationFailureCause(),
-        ),
-      )
     }
 
   /**
    * Provides the error code string associated with a guard validation failure.
    *
+   * This method is only consulted when [executeDecision] is not overridden.
+   * It serves as a legacy extension point for boolean-based guards and is kept for backward compatibility.
+   *
    * @return The specific error code string representing guard validation failure.
    */
+  @Deprecated(
+    message = "Legacy hook for boolean-based guards. Override executeDecision(container) " +
+      "and return GuardDecision.Deny(errorCode, cause) instead.",
+    level = DeprecationLevel.WARNING,
+    replaceWith = ReplaceWith(
+      "executeDecision(container: TContainer): Mono<GuardDecision>",
+      "io.github.mahdibohloul.statemachine.guards.GuardDecision",
+    ),
+  )
   fun getValidationFailureErrorCodeString(): ErrorCodeString = StateMachineErrorCodeString.GuardValidationFailed
 
   /**
    * Retrieves the cause of the validation failure, if available.
    *
-   * This function is used to provide additional context or details
-   * about why a validation operation has failed. It returns a throwable
-   * that represents the root cause of the failure, or null if no specific
-   * cause is provided.
+   * This method is only used by the default [executeDecision] adapter for legacy boolean-based guards.
+   * New guards should encode the cause directly in [GuardDecision.Deny] returned from [executeDecision].
    *
    * @return A Throwable representing the cause of the validation failure, or null if no cause is available.
    */
+  @Deprecated(
+    message = "Legacy hook for boolean-based guards. Provide failure details via GuardDecision.Deny " +
+      "in executeDecision(container) instead.",
+    level = DeprecationLevel.WARNING,
+    replaceWith = ReplaceWith(
+      "executeDecision(container: TContainer): Mono<GuardDecision>",
+      "io.github.mahdibohloul.statemachine.guards.GuardDecision",
+    ),
+  )
   fun getValidationFailureCause(): Throwable? = null
 }

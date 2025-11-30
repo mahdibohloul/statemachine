@@ -41,10 +41,26 @@ object StateMachineTestHelper {
   }
 
   class TrueTransformationGuard : OnTransformationGuard<TestContainer> {
+    @Deprecated(
+      "Legacy boolean-based guard execution method. Use executeDecision(container) instead.",
+      replaceWith = ReplaceWith(
+        "executeDecision(container: TContainer): Mono<GuardDecision>",
+        "io.github.mahdibohloul.statemachine.guards.GuardDecision",
+      ),
+      level = DeprecationLevel.WARNING,
+    )
     override fun execute(container: TestContainer): Mono<Boolean> = true.toMono()
   }
 
   class FalseTransformationGuard : OnTransformationGuard<TestContainer> {
+    @Deprecated(
+      "Legacy boolean-based guard execution method. Use executeDecision(container) instead.",
+      replaceWith = ReplaceWith(
+        "executeDecision(container: TContainer): Mono<GuardDecision>",
+        "io.github.mahdibohloul.statemachine.guards.GuardDecision",
+      ),
+      level = DeprecationLevel.WARNING,
+    )
     override fun execute(container: TestContainer): Mono<Boolean> = false.toMono()
   }
 
