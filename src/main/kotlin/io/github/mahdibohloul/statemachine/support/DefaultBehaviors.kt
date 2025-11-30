@@ -4,6 +4,7 @@ import io.github.mahdibohloul.statemachine.StateMachineException
 import io.github.mahdibohloul.statemachine.TransformationContainer
 import io.github.mahdibohloul.statemachine.TransformationRequest
 import io.github.mahdibohloul.statemachine.actions.OnTransformationAction
+import io.github.mahdibohloul.statemachine.guards.GuardDecision
 import io.github.mahdibohloul.statemachine.guards.OnTransformationGuard
 import io.github.mahdibohloul.statemachine.handlers.OnTransformationErrorHandler
 import io.github.mahdibohloul.statemachine.providers.TransformationContainerProvider
@@ -24,7 +25,16 @@ class DefaultBehaviors {
   }
 
   class DefaultOnTransformationGuard<TContainer : TransformationContainer<*>> : OnTransformationGuard<TContainer> {
+    @Deprecated(
+      "Legacy boolean-based guard execution method. Use executeDecision(container) instead.",
+      replaceWith = ReplaceWith(
+        "executeDecision(container: TContainer): Mono<GuardDecision>",
+        "io.github.mahdibohloul.statemachine.guards.GuardDecision",
+      ),
+      level = DeprecationLevel.WARNING,
+    )
     override fun execute(container: TContainer): Mono<Boolean> = true.toMono()
+    override fun executeDecision(container: TContainer): Mono<GuardDecision> = GuardDecision.Allow.toMono()
   }
 
   class DefaultTransformationResponseProvider<

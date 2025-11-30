@@ -86,7 +86,7 @@ Maven:
 <dependency>
     <groupId>io.github.mahdibohloul</groupId>
     <artifactId>statemachine</artifactId>
-    <version>0.9.0</version>
+    <version>0.10.0</version>
 </dependency>
 ```
 
@@ -168,11 +168,26 @@ class ValidatePaymentAction : OnTransformationAction<OrderContainer> {
 
 @Component
 class InventoryCheckGuard : OnTransformationGuard<OrderContainer> {
-  override fun execute(container: OrderContainer): Mono<Boolean> =
+  // Preferred: New-style API with GuardDecision (thread-safe)
+  // Requires: import io.github.mahdibohloul.statemachine.guards.GuardDecision
+  //          import io.github.mahdibohloul.statemachine.StateMachineErrorCodeString
+  override fun executeDecision(container: OrderContainer): Mono<GuardDecision> =
     Mono.fromCallable {
-      // Check inventory availability
-      container.order.items.all { item -> checkInventory(item) }
+      val allItemsAvailable = container.order.items.all { item -> checkInventory(item) }
+      if (allItemsAvailable) {
+        GuardDecision.Allow
+      } else {
+        GuardDecision.Deny(
+          errorCode = StateMachineErrorCodeString.GuardValidationFailed,
+          cause = InsufficientInventoryException(container.order.items)
+        )
+      }
     }
+  
+  // Legacy: Deprecated boolean-based API (still supported for backward compatibility)
+  @Deprecated("Use executeDecision instead", ReplaceWith("executeDecision(container)"))
+  override fun execute(container: OrderContainer): Mono<Boolean> =
+    executeDecision(container).map { it.isAllowed() }
 }
 ```
 
@@ -359,6 +374,54 @@ class OrderErrorHandler : OnTransformationErrorHandler<OrderRequest, Order> {
     }
 }
 ```
+
+### Guard Decision API and Thread Safety
+
+The library provides a thread-safe guard validation API through the `GuardDecision` sealed interface. This prevents concurrency issues when multiple threads access stateless guards.
+
+**Why GuardDecision?**
+
+In concurrent environments, stateless guards that rely on instance methods to provide error codes can experience race conditions. The `GuardDecision` API captures error codes and causes in immutable data structures at decision time, ensuring thread-safe error handling.
+
+**Using GuardDecision:**
+
+```kotlin
+@Component
+class PaymentValidationGuard : OnTransformationGuard<OrderContainer> {
+  override fun executeDecision(container: OrderContainer): Mono<GuardDecision> =
+    Mono.fromCallable {
+      val isValid = validatePayment(container.order.paymentMethod)
+      if (isValid) {
+        GuardDecision.Allow
+      } else {
+        GuardDecision.Deny(
+          errorCode = CustomErrorCode.PaymentValidationFailed,
+          cause = PaymentValidationException("Invalid payment method")
+        )
+      }
+    }
+}
+```
+
+**Legacy Boolean API (Deprecated):**
+
+The legacy `execute()` method returning `Mono<Boolean>` is still supported for backward compatibility but is deprecated. The default implementation of `executeDecision()` adapts legacy guards automatically.
+
+```kotlin
+// Legacy approach (deprecated but still works)
+@Component
+class LegacyGuard : OnTransformationGuard<OrderContainer> {
+  @Deprecated("Use executeDecision instead")
+  override fun execute(container: OrderContainer): Mono<Boolean> =
+    Mono.just(validate(container))
+}
+```
+
+**Benefits:**
+- **Thread-safe**: Error codes are captured in immutable `GuardDecision.Deny` objects
+- **Type-safe**: Sealed interface ensures exhaustive handling
+- **Backward compatible**: Legacy boolean-based guards continue to work
+- **Rich error information**: Error codes and causes are explicitly captured
 
 ---
 
@@ -629,6 +692,41 @@ class OrderActionTest {
       .verifyError(PaymentValidationException::class.java)
   }
 }
+
+@Test
+fun `should validate guard successfully with GuardDecision`() {
+  // Given
+  val container = OrderContainer(
+    order = Order(items = listOf(Item(id = "item1", quantity = 2))),
+    customer = Customer(id = "123")
+  )
+  val guard = InventoryCheckGuard()
+  
+  // When & Then
+  guard.executeDecision(container)
+    .`as`(StepVerifier::create)
+    .expectNextMatches { it is GuardDecision.Allow }
+    .verifyComplete()
+}
+
+@Test
+fun `should deny guard validation with error code`() {
+  // Given
+  val container = OrderContainer(
+    order = Order(items = listOf(Item(id = "out-of-stock", quantity = 100))),
+    customer = Customer(id = "123")
+  )
+  val guard = InventoryCheckGuard()
+  
+  // When & Then
+  guard.executeDecision(container)
+    .`as`(StepVerifier::create)
+    .expectNextMatches { decision ->
+      decision is GuardDecision.Deny &&
+      decision.errorCode == StateMachineErrorCodeString.GuardValidationFailed
+    }
+    .verifyComplete()
+}
 ```
 
 ### Testing Composed Behaviors
@@ -764,8 +862,10 @@ class OrderTransformerTest {
 
 ### 4. Guard Design
 - Guards should be pure validation logic
-- Return meaningful error messages for failed validations
-- Consider using domain-specific exception types
+- Prefer `executeDecision()` returning `GuardDecision` over legacy `execute()` returning `Boolean`
+- Use `GuardDecision.Deny` with specific error codes and causes for failed validations
+- Return meaningful error codes and exception causes for better error handling
+- Consider using domain-specific exception types in `GuardDecision.Deny`
 
 ### 5. Error Handling
 - Use domain-specific exceptions

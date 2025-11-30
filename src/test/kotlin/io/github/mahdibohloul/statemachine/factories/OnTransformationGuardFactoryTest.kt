@@ -2,6 +2,7 @@ package io.github.mahdibohloul.statemachine.factories
 
 import io.github.mahdibohloul.statemachine.StateMachineTestHelper
 import io.github.mahdibohloul.statemachine.TransformationContainer
+import io.github.mahdibohloul.statemachine.guards.GuardDecision
 import io.github.mahdibohloul.statemachine.guards.OnTransformationGuard
 import io.github.mahdibohloul.statemachine.support.CompositeBehaviors
 import org.junit.jupiter.api.BeforeEach
@@ -26,7 +27,16 @@ class OnTransformationGuardFactoryTest {
   ) : TransformationContainer<NotMatchEnum>
 
   class NotMatchTransformationGuard : OnTransformationGuard<NotMatchContainer> {
+    @Deprecated(
+      "Legacy boolean-based guard execution method. Use executeDecision(container) instead.",
+      replaceWith = ReplaceWith(
+        "executeDecision(container: TContainer): Mono<GuardDecision>",
+        "io.github.mahdibohloul.statemachine.guards.GuardDecision",
+      ),
+      level = DeprecationLevel.WARNING,
+    )
     override fun execute(container: NotMatchContainer): Mono<Boolean> = true.toMono()
+    override fun executeDecision(container: NotMatchContainer): Mono<GuardDecision> = GuardDecision.Allow.toMono()
   }
 
   @InjectMocks
