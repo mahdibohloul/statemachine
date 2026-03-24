@@ -86,7 +86,7 @@ Maven:
 <dependency>
     <groupId>io.github.mahdibohloul</groupId>
     <artifactId>statemachine</artifactId>
-    <version>0.10.0</version>
+    <version>0.11.0</version>
 </dependency>
 ```
 
@@ -168,7 +168,6 @@ class ValidatePaymentAction : OnTransformationAction<OrderContainer> {
 
 @Component
 class InventoryCheckGuard : OnTransformationGuard<OrderContainer> {
-  // Preferred: New-style API with GuardDecision (thread-safe)
   // Requires: import io.github.mahdibohloul.statemachine.guards.GuardDecision
   //          import io.github.mahdibohloul.statemachine.StateMachineErrorCodeString
   override fun executeDecision(container: OrderContainer): Mono<GuardDecision> =
@@ -183,11 +182,6 @@ class InventoryCheckGuard : OnTransformationGuard<OrderContainer> {
         )
       }
     }
-  
-  // Legacy: Deprecated boolean-based API (still supported for backward compatibility)
-  @Deprecated("Use executeDecision instead", ReplaceWith("executeDecision(container)"))
-  override fun execute(container: OrderContainer): Mono<Boolean> =
-    executeDecision(container).map { it.isAllowed() }
 }
 ```
 
@@ -403,24 +397,11 @@ class PaymentValidationGuard : OnTransformationGuard<OrderContainer> {
 }
 ```
 
-**Legacy Boolean API (Deprecated):**
-
-The legacy `execute()` method returning `Mono<Boolean>` is still supported for backward compatibility but is deprecated. The default implementation of `executeDecision()` adapts legacy guards automatically.
-
-```kotlin
-// Legacy approach (deprecated but still works)
-@Component
-class LegacyGuard : OnTransformationGuard<OrderContainer> {
-  @Deprecated("Use executeDecision instead")
-  override fun execute(container: OrderContainer): Mono<Boolean> =
-    Mono.just(validate(container))
-}
-```
+**Migrating from 0.10.x:** If you previously implemented `execute(container): Mono<Boolean>` (and optional `getValidationFailure*` hooks), replace that with `executeDecision(container): Mono<GuardDecision>` and return `GuardDecision.Allow` or `GuardDecision.Deny(errorCode, cause)`.
 
 **Benefits:**
 - **Thread-safe**: Error codes are captured in immutable `GuardDecision.Deny` objects
 - **Type-safe**: Sealed interface ensures exhaustive handling
-- **Backward compatible**: Legacy boolean-based guards continue to work
 - **Rich error information**: Error codes and causes are explicitly captured
 
 ---
@@ -862,7 +843,7 @@ class OrderTransformerTest {
 
 ### 4. Guard Design
 - Guards should be pure validation logic
-- Prefer `executeDecision()` returning `GuardDecision` over legacy `execute()` returning `Boolean`
+- Implement `executeDecision()` returning `GuardDecision` (`Allow` or `Deny` with error code and cause)
 - Use `GuardDecision.Deny` with specific error codes and causes for failed validations
 - Return meaningful error codes and exception causes for better error handling
 - Consider using domain-specific exception types in `GuardDecision.Deny`

@@ -2,6 +2,7 @@ package io.github.mahdibohloul.statemachine.support
 
 import io.github.mahdibohloul.statemachine.StateMachineException
 import io.github.mahdibohloul.statemachine.StateMachineTestHelper
+import io.github.mahdibohloul.statemachine.guards.GuardDecision
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.spy
 import org.mockito.kotlin.verifyNoInteractions
@@ -43,16 +44,16 @@ class DefaultBehaviorsTest {
   }
 
   @Test
-  fun `the default on transformation guard should return true`() {
+  fun `the default on transformation guard should allow`() {
     // given
     val container = spy(StateMachineTestHelper.TestContainer())
     val defaultOnTransformationGuard =
       DefaultBehaviors.DefaultOnTransformationGuard<StateMachineTestHelper.TestContainer>()
 
     // when
-    defaultOnTransformationGuard.execute(container)
+    defaultOnTransformationGuard.executeDecision(container)
       .test()
-      .expectNext(true)
+      .expectNext(GuardDecision.Allow)
       .verifyComplete()
 
     // verify
