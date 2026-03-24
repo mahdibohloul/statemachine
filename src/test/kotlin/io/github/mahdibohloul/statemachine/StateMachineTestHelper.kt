@@ -2,6 +2,7 @@ package io.github.mahdibohloul.statemachine
 
 import io.github.mahdibohloul.statemachine.actions.OnTransformationAction
 import io.github.mahdibohloul.statemachine.choices.OnTransformationChoice
+import io.github.mahdibohloul.statemachine.guards.GuardDecision
 import io.github.mahdibohloul.statemachine.guards.OnTransformationGuard
 import io.github.mahdibohloul.statemachine.handlers.OnTransformationErrorHandler
 import io.github.mahdibohloul.statemachine.providers.TransformationContainerProvider
@@ -41,27 +42,11 @@ object StateMachineTestHelper {
   }
 
   class TrueTransformationGuard : OnTransformationGuard<TestContainer> {
-    @Deprecated(
-      "Legacy boolean-based guard execution method. Use executeDecision(container) instead.",
-      replaceWith = ReplaceWith(
-        "executeDecision(container: TContainer): Mono<GuardDecision>",
-        "io.github.mahdibohloul.statemachine.guards.GuardDecision",
-      ),
-      level = DeprecationLevel.WARNING,
-    )
-    override fun execute(container: TestContainer): Mono<Boolean> = true.toMono()
+    override fun executeDecision(container: TestContainer): Mono<GuardDecision> = GuardDecision.Allow.toMono()
   }
 
   class FalseTransformationGuard : OnTransformationGuard<TestContainer> {
-    @Deprecated(
-      "Legacy boolean-based guard execution method. Use executeDecision(container) instead.",
-      replaceWith = ReplaceWith(
-        "executeDecision(container: TContainer): Mono<GuardDecision>",
-        "io.github.mahdibohloul.statemachine.guards.GuardDecision",
-      ),
-      level = DeprecationLevel.WARNING,
-    )
-    override fun execute(container: TestContainer): Mono<Boolean> = false.toMono()
+    override fun executeDecision(container: TestContainer): Mono<GuardDecision> = GuardDecision.Deny().toMono()
   }
 
   class TrueTransformationChoice : OnTransformationChoice<TestContainer> {

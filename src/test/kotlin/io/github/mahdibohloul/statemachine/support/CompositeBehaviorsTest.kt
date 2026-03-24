@@ -2,6 +2,7 @@ package io.github.mahdibohloul.statemachine.support
 
 import io.github.mahdibohloul.statemachine.StateMachineException
 import io.github.mahdibohloul.statemachine.StateMachineTestHelper
+import io.github.mahdibohloul.statemachine.guards.GuardDecision
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.spy
 import org.mockito.kotlin.times
@@ -54,7 +55,7 @@ class CompositeBehaviorsTest {
   }
 
   @Test
-  fun `should return true when all guards returns true`() {
+  fun `should allow when all guards allow`() {
     // given
     val trueGuard = spy(StateMachineTestHelper.TrueTransformationGuard())
     val compositeOnTransformationGuard = CompositeBehaviors.CompositeOnTransformationGuard(
@@ -63,17 +64,17 @@ class CompositeBehaviorsTest {
     val container = StateMachineTestHelper.TestContainer()
 
     // when
-    compositeOnTransformationGuard.execute(container)
+    compositeOnTransformationGuard.executeDecision(container)
       .test()
-      .expectNext(true)
+      .expectNext(GuardDecision.Allow)
       .verifyComplete()
 
     // verify
-    verify(trueGuard, times(3)).execute(container)
+    verify(trueGuard, times(3)).executeDecision(container)
   }
 
   @Test
-  fun `should fail-fast if an earlier guard fails sooner`() {
+  fun `should fail-fast if an earlier guard deny sooner`() {
     // given
     val trueGuard = spy(StateMachineTestHelper.TrueTransformationGuard())
     val falseGuard = spy(StateMachineTestHelper.FalseTransformationGuard())
@@ -83,14 +84,14 @@ class CompositeBehaviorsTest {
     val container = StateMachineTestHelper.TestContainer()
 
     // when
-    compositeOnTransformationGuard.execute(container)
+    compositeOnTransformationGuard.executeDecision(container)
       .test()
-      .expectNext(false)
+      .expectNext(GuardDecision.Deny())
       .verifyComplete()
 
     // verify
-    verify(trueGuard, times(1)).execute(container)
-    verify(falseGuard, times(1)).execute(container)
+    verify(trueGuard, times(1)).executeDecision(container)
+    verify(falseGuard, times(1)).executeDecision(container)
   }
 
   @Test
@@ -104,14 +105,14 @@ class CompositeBehaviorsTest {
     val container = StateMachineTestHelper.TestContainer()
 
     // when
-    compositeOnTransformationGuard.execute(container)
+    compositeOnTransformationGuard.executeDecision(container)
       .test()
-      .expectNext(false)
+      .expectNext(GuardDecision.Deny())
       .verifyComplete()
 
     // verify
-    verify(trueGuard, times(1)).execute(container)
-    verify(falseGuard, times(1)).execute(container)
+    verify(trueGuard, times(1)).executeDecision(container)
+    verify(falseGuard, times(1)).executeDecision(container)
   }
 
   @Test
@@ -136,7 +137,7 @@ class CompositeBehaviorsTest {
   }
 
   @Test
-  fun `should return true when all validations are successful`() {
+  fun `should allow when all validations are successful`() {
     // given
     val trueGuard = spy(StateMachineTestHelper.TrueTransformationGuard())
     val compositeOnTransformationGuard = CompositeBehaviors.CompositeOnTransformationGuard(
@@ -249,7 +250,7 @@ class CompositeBehaviorsTest {
   }
 
   @Test
-  fun `should return true when all choices return true`() {
+  fun `should allow when all choices allow`() {
     // given
     val trueChoice = spy(StateMachineTestHelper.TrueTransformationChoice())
     val compositeOnTransformationChoice = CompositeBehaviors.CompositeOnTransformationChoice(
@@ -331,7 +332,7 @@ class CompositeBehaviorsTest {
   }
 
   @Test
-  fun `should return true when only one choice exists and it returns true`() {
+  fun `should allow when only one choice exists and it allow`() {
     // given
     val trueChoice = spy(StateMachineTestHelper.TrueTransformationChoice())
     val compositeOnTransformationChoice = CompositeBehaviors.CompositeOnTransformationChoice(

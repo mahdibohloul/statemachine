@@ -49,24 +49,12 @@ class CompositeBehaviors {
   class CompositeOnTransformationGuard<TContainer : TransformationContainer<*>>(
     private val guards: MutableList<OnTransformationGuard<TContainer>>,
   ) : OnTransformationGuard<TContainer> {
-    @Deprecated(
-      "Legacy boolean-based guard execution method. Use executeDecision(container) instead.",
-      replaceWith = ReplaceWith(
-        "executeDecision(container: TContainer): Mono<GuardDecision>",
-        "io.github.mahdibohloul.statemachine.guards.GuardDecision",
-      ),
-      level = DeprecationLevel.WARNING,
-    )
-    override fun execute(container: TContainer): Mono<Boolean> = guards.fold(true.toMono()) { acc, guard ->
-      acc.filter { it }.flatMap { guard.execute(container) }.defaultIfEmpty(false)
-    }
-
     override fun executeDecision(
       container: TContainer,
     ): Mono<GuardDecision> = guards.fold(Mono.just(GuardDecision.Allow)) { acc, guard ->
       acc.flatMap { decision ->
         if (decision.isDenied()) {
-          return@flatMap Mono.just(decision)
+          return@flatMap decision.toMono()
         }
 
         return@flatMap guard.executeDecision(container)
