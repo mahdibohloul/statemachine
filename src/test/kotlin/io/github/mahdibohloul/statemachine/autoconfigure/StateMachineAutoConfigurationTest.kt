@@ -1,5 +1,6 @@
 package io.github.mahdibohloul.statemachine.autoconfigure
 
+import box.tapsi.libs.utilities.time.TimeOperator
 import io.github.mahdibohloul.statemachine.TransformationContainer
 import io.github.mahdibohloul.statemachine.TransformationRequest
 import io.github.mahdibohloul.statemachine.annotations.StateMachineState
@@ -15,12 +16,14 @@ import io.github.mahdibohloul.statemachine.transformers.StateTransformer
 import io.github.mahdibohloul.statemachine.transformers.StateTransformerAdapter
 import org.junit.jupiter.api.Test
 import org.springframework.boot.autoconfigure.AutoConfigurations
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration
 import org.springframework.boot.test.context.runner.ApplicationContextRunner
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
 import reactor.kotlin.test.test
+import kotlin.test.assertNull
 import kotlin.test.assertSame
 
 /**
@@ -40,6 +43,18 @@ class StateMachineAutoConfigurationTest {
       context.getBean(OnTransformationGuardFactory::class.java)
       context.getBean(StateMachineStateFactory::class.java)
     }
+  }
+
+  @Test
+  fun `should start together with all auto-configurations on the classpath`() {
+    ApplicationContextRunner()
+      .withUserConfiguration(EnableAutoConfigurationConfiguration::class.java)
+      .run { context ->
+        assertNull(context.startupFailure)
+        context.getBean(StateMachineStateFactory::class.java)
+        // A bean from the auto-configuration of box.tapsi.libs:utilities-starter
+        context.getBean(TimeOperator::class.java)
+      }
   }
 
   @Test
@@ -104,6 +119,10 @@ class StateMachineAutoConfigurationTest {
       }
     }
   }
+
+  @Configuration(proxyBeanMethods = false)
+  @EnableAutoConfiguration
+  class EnableAutoConfigurationConfiguration
 
   @Configuration(proxyBeanMethods = false)
   class ApprovalConfiguration {

@@ -92,35 +92,33 @@ Maven:
 
 Minimums:
 
-- Kotlin 1.9.25+ (the library is compiled with Kotlin 2.2 and targets Kotlin 2.0 language and API versions)
+- Kotlin 2.2+
 - Java 21+
-- Spring Framework 6.2+/Spring Boot 3.5+ (optional, for Spring integration)
-- Reactor 3.7+
+- Spring Framework 7.0+/Spring Boot 4.1+
+- Reactor 3.8+
+- `box.tapsi.libs:utilities-starter` 1.0.0+ (a transitive dependency)
 
 ### Compatibility
 
-| Spring Boot | Spring Framework | Kotlin | Status                     |
-|-------------|------------------|--------|----------------------------|
-| 3.5.x       | 6.2.x            | 1.9.25 | Supported (published POM)  |
-| 4.0.x       | 7.0.x            | 2.2.x  | Supported (tested in CI)   |
-| 4.1.x       | 7.0.x            | 2.3.x  | Supported (tested in CI)   |
+| statemachine | Spring Boot | Spring Framework | Kotlin  |
+|--------------|-------------|------------------|---------|
+| 0.12.x       | 4.1+        | 7.0+             | 2.2+    |
+| 0.11.x       | 3.5         | 6.2              | 1.9.25+ |
 
-The published POM declares the Spring Boot 3.5 versions as minimums. When your application uses
-Spring Boot 4, the Spring Boot dependency management selects the Spring Framework 7 versions.
+If your application uses Spring Boot 3.5, continue to use version 0.11.x.
+
+Version 0.12.0 does not change the public API. To migrate from 0.11.x, upgrade your application to
+Spring Boot 4.1 or newer, then change the version of this library.
 
 Interface methods that have a body (for example `OnTransformationGuard.validate`) compile to JVM default
 methods. Thus Java classes do not have to implement them. The `DefaultImpls` classes are kept for binary
 compatibility with code that was compiled against earlier versions.
 
-To build and test the library against a different Spring Boot version, use:
+To build and test the library against a newer Spring Boot version, use:
 
 ```shell
-./gradlew check -PspringBootVersion=4.0.8
+./gradlew check -PspringBootVersion=4.2.0
 ```
-
-> **Note:** The `box.tapsi.libs:utilities-starter` dependency is built for Spring Boot 3.5. A Spring Boot 4
-> release of that library is in progress. Until it is released, its auto-configuration is not verified
-> against Spring Boot 4.
 
 ---
 
@@ -916,10 +914,12 @@ Key patterns from the production implementation:
 
 ## Version Matrix
 
-- Kotlin: 1.9.x
-- Reactor: 3.7.x
-- Spring: 6.1+/Boot 3.3+
+- Kotlin: 2.2+
+- Reactor: 3.8.x
+- Spring: 7.0+/Boot 4.1+
 - Java: 21
+
+See [Compatibility](#compatibility) for earlier versions.
 
 ---
 

@@ -22,9 +22,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # "baseline" uses the dependency versions that are published in the POM (Spring Boot 3.5).
-        # The other entries compile and test the library against a newer Spring Boot BOM.
-        spring-boot: [ 'baseline', '4.0.8', '4.1.1' ]
+        # "baseline" uses the dependency versions that are published in the POM (Spring Boot 4.1).
+        # Add a Spring Boot version (for example '4.2.0') to also compile and test against its BOM.
+        spring-boot: [ 'baseline' ]
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 21

@@ -28,33 +28,33 @@ repositories {
 
 /**
  * The lowest Kotlin version that consumers of this library can use.
- * Spring Boot 3.5 manages Kotlin 1.9.25, which can read metadata of Kotlin 2.0, and
- * Spring Boot 4 requires Kotlin 2.2. Kotlin 2.0 keeps the library usable on both lines.
+ * Spring Boot 4 requires Kotlin 2.2. Keep these values when you update the Kotlin compiler,
+ * thus the library stays usable for all Spring Boot 4 applications.
  */
-val minimumKotlinVersion = KotlinVersion.KOTLIN_2_0
-val minimumKotlinStdlibVersion = "2.0.21"
+val minimumKotlinVersion = KotlinVersion.KOTLIN_2_2
+val minimumKotlinStdlibVersion = "2.2.21"
 
 /**
- * Optional Spring Boot version to compile and test against, for example `-PspringBootVersion=4.0.8`.
+ * Optional Spring Boot version to compile and test against, for example `-PspringBootVersion=4.2.0`.
  * The Spring Boot BOM is applied only to the compile and test classpaths, thus the published
  * dependency versions do not change.
  */
 val springBootVersion: String? = providers.gradleProperty("springBootVersion").orNull
 
 dependencies {
-  api("io.projectreactor:reactor-core:3.7.11")
-  api("org.springframework:spring-context:6.2.11")
-  api("box.tapsi.libs:utilities-starter:0.9.2")
+  api("io.projectreactor:reactor-core:3.8.7")
+  api("org.springframework:spring-context:7.0.9")
+  api("box.tapsi.libs:utilities-starter:1.0.0")
 
-  implementation("io.projectreactor.kotlin:reactor-kotlin-extensions:1.2.4")
-  implementation("org.springframework.boot:spring-boot-autoconfigure:3.5.6")
-  implementation("org.springframework:spring-tx:6.2.11")
-  implementation("org.slf4j:slf4j-api:2.0.17")
+  implementation("io.projectreactor.kotlin:reactor-kotlin-extensions:1.3.2")
+  implementation("org.springframework.boot:spring-boot-autoconfigure:4.1.1")
+  implementation("org.springframework:spring-tx:7.0.9")
+  implementation("org.slf4j:slf4j-api:2.0.18")
 
-  testImplementation("org.springframework.boot:spring-boot-starter-test:3.5.6")
+  testImplementation("org.springframework.boot:spring-boot-starter-test:4.1.1")
   testImplementation(kotlin("test-junit5"))
   testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
-  testImplementation("io.projectreactor:reactor-test:3.7.11")
+  testImplementation("io.projectreactor:reactor-test:3.8.7")
 
   testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
@@ -73,12 +73,8 @@ kotlin {
     // Compile interface bodies to JVM default methods, and keep the DefaultImpls classes for binary
     // compatibility with code compiled against earlier versions. This is the Kotlin 2.2 default.
     jvmDefault = JvmDefaultMode.ENABLE
-    freeCompilerArgs.addAll(
-      // Spring Framework 6 uses JSR-305 nullability annotations.
-      "-Xjsr305=strict",
-      // Spring Framework 7 uses JSpecify nullability annotations.
-      "-Xjspecify-annotations=strict",
-    )
+    // Spring Framework 7 and Reactor 3.8 use JSpecify nullability annotations.
+    freeCompilerArgs.add("-Xjspecify-annotations=strict")
   }
 }
 
