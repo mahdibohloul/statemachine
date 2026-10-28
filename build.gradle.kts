@@ -1,17 +1,19 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+
 plugins {
-  kotlin("jvm") version "1.9.25"
-  kotlin("plugin.spring") version "1.9.25"
-  id("io.spring.dependency-management") version "1.1.7"
+  kotlin("jvm") version "2.2.21"
+  kotlin("plugin.spring") version "2.2.21"
 
   id("com.vanniktech.maven.publish") version "0.34.0"
   id("com.diffplug.spotless") version "7.2.1"
-  id("io.gitlab.arturbosch.detekt") version "1.23.6"
+  id("io.gitlab.arturbosch.detekt") version "1.23.8"
 
   `java-library`
 }
 
 group = "io.github.mahdibohloul"
-version = "0.11.0"
+version = "0.12.0"
 description = "statemachine"
 
 java {
@@ -24,26 +26,55 @@ repositories {
   mavenCentral()
 }
 
-dependencies {
-  implementation("io.projectreactor:reactor-core:3.7.11")
-  implementation("io.projectreactor.kotlin:reactor-kotlin-extensions:1.2.4")
-  implementation("io.projectreactor.addons:reactor-extra:3.5.3")
-  implementation("org.springframework.boot:spring-boot-autoconfigure:3.5.6")
-  implementation("box.tapsi.libs:utilities-starter:0.9.2")
-  implementation("org.springframework:spring-tx:6.2.11")
-  implementation("org.slf4j:slf4j-api:2.0.17")
+/**
+ * The lowest Kotlin version that consumers of this library can use.
+ * Spring Boot 4 requires Kotlin 2.2. Keep these values when you update the Kotlin compiler,
+ * thus the library stays usable for all Spring Boot 4 applications.
+ */
+val minimumKotlinVersion = KotlinVersion.KOTLIN_2_2
+val minimumKotlinStdlibVersion = "2.2.21"
 
-  testImplementation("org.springframework.boot:spring-boot-starter-test:3.5.5")
-  testImplementation("org.jetbrains.kotlin:kotlin-test-junit5:1.9.25")
-  testImplementation("org.mockito.kotlin:mockito-kotlin:5.1.0")
-  testImplementation("io.projectreactor:reactor-test:3.7.11")
+/**
+ * Optional Spring Boot version to compile and test against, for example `-PspringBootVersion=4.2.0`.
+ * The Spring Boot BOM is applied only to the compile and test classpaths, thus the published
+ * dependency versions do not change.
+ */
+val springBootVersion: String? = providers.gradleProperty("springBootVersion").orNull
+
+dependencies {
+  api("io.projectreactor:reactor-core:3.8.7")
+  api("org.springframework:spring-context:7.0.9")
+  api("box.tapsi.libs:utilities-starter:1.0.0")
+
+  implementation("io.projectreactor.kotlin:reactor-kotlin-extensions:1.3.2")
+  implementation("org.springframework.boot:spring-boot-autoconfigure:4.1.1")
+  implementation("org.springframework:spring-tx:7.0.9")
+  implementation("org.slf4j:slf4j-api:2.0.18")
+
+  testImplementation("org.springframework.boot:spring-boot-starter-test:4.1.1")
+  testImplementation(kotlin("test-junit5"))
+  testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
+  testImplementation("io.projectreactor:reactor-test:3.8.7")
 
   testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+  if (springBootVersion != null) {
+    val springBootBom = platform("org.springframework.boot:spring-boot-dependencies:$springBootVersion")
+    compileOnly(springBootBom)
+    testImplementation(springBootBom)
+  }
 }
 
 kotlin {
+  coreLibrariesVersion = minimumKotlinStdlibVersion
   compilerOptions {
-    freeCompilerArgs.addAll("-Xjsr305=strict")
+    languageVersion = minimumKotlinVersion
+    apiVersion = minimumKotlinVersion
+    // Compile interface bodies to JVM default methods, and keep the DefaultImpls classes for binary
+    // compatibility with code compiled against earlier versions. This is the Kotlin 2.2 default.
+    jvmDefault = JvmDefaultMode.ENABLE
+    // Spring Framework 7 and Reactor 3.8 use JSpecify nullability annotations.
+    freeCompilerArgs.add("-Xjspecify-annotations=strict")
   }
 }
 
@@ -105,15 +136,17 @@ detekt {
 }
 
 tasks.register("verifyReadmeContent") {
-  doLast {
-    val readmeFile = file("README.md")
-    val content = readmeFile.readText()
+  // Read the project values at configuration time. Access to Task.project at execution time
+  // is deprecated and is not compatible with the configuration cache.
+  val readmeFile = file("README.md")
+  val checks = listOf(
+    Check("group ID", """<groupId>${project.group}</groupId>"""),
+    Check("version", """<version>${project.version}</version>"""),
+  )
+  inputs.file(readmeFile)
 
-    // List of checks
-    val checks = listOf(
-      Check("group ID", """<groupId>${project.group}</groupId>"""),
-      Check("version", """<version>${project.version}</version>"""),
-    )
+  doLast {
+    val content = readmeFile.readText()
 
     val errors = checks.mapNotNull { check ->
       if (!content.contains(check.expectedValue)) {

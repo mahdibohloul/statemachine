@@ -17,24 +17,35 @@ permissions:
 
 jobs:
   build:
+    name: Build (Spring Boot ${{ matrix.spring-boot }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # "baseline" uses the dependency versions that are published in the POM (Spring Boot 4.1).
+        # Add a Spring Boot version (for example '4.2.0') to also compile and test against its BOM.
+        spring-boot: [ 'baseline' ]
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 21
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: gradle
 
       - name: Setup Gradle
-        uses: gradle/gradle-build-action@v2.9.0
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Check Code Style
         run: ./gradlew spotlessCheck
 
       - name: Build and Test
-        run: ./gradlew clean check
+        run: |
+          if [ "${{ matrix.spring-boot }}" = "baseline" ]; then
+            ./gradlew clean check
+          else
+            ./gradlew clean check -PspringBootVersion=${{ matrix.spring-boot }}
+          fi
 
   publish:
     needs: build
@@ -50,7 +61,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
